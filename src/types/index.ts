@@ -1,48 +1,38 @@
 
+// Adicionando o tipo Size que estava faltando, causando o erro
+export type Size = '300ml' | '500ml' | '700ml';
+
 export type Product = {
   id: string;
   name: string;
   description: string;
-  category: 'acai' | 'iceCream';
+  price: number;
   image: string;
-  basePrice: number;
-};
-
-export type Size = {
-  id: string;
-  name: string;
-  volume: string;
-  priceMultiplier: number;
+  category: 'acai' | 'sorvete' | 'complemento';
+  available_sizes?: Size[];
 };
 
 export type Topping = {
   id: string;
   name: string;
-  price: number;
-  category: 'fruits' | 'sweets' | 'syrups' | 'other';
-  image?: string;
+  price: number | null;
+  category: 'frutas' | 'complementos' | 'caldas';
 };
 
 export type OrderItem = {
   id: string;
-  product: Product;
-  size: Size;
-  toppings: Topping[];
+  productId: string;
+  productName: string;
+  size?: Size;
   quantity: number;
-  notes?: string;
+  price: number;
+  toppings: Topping[];
 };
 
 export type Order = {
   id: string;
   items: OrderItem[];
   total: number;
-  orderNumber: number;
-  createdAt: Date;
-  status: 'pending' | 'completed' | 'cancelled';
-};
-
-export type User = {
-  id: string;
-  name: string;
-  role: 'admin' | 'cashier';
+  date: Date;
+  status: 'pending' | 'completed' | 'canceled';
 };
