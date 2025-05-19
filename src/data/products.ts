@@ -1,5 +1,5 @@
 
-import { Product } from '../types';
+import { Product, Size } from '../types';
 
 export const products: Product[] = [
   {
@@ -9,6 +9,7 @@ export const products: Product[] = [
     category: 'acai',
     image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
     basePrice: 12.00,
+    price: 12.00,
   },
   {
     id: '2',
@@ -17,6 +18,7 @@ export const products: Product[] = [
     category: 'acai',
     image: 'https://images.unsplash.com/photo-1490323935964-3522e2be9db0?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
     basePrice: 14.00,
+    price: 14.00,
   },
   {
     id: '3',
@@ -25,30 +27,34 @@ export const products: Product[] = [
     category: 'acai',
     image: 'https://images.unsplash.com/photo-1502825751399-28bde8401def?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
     basePrice: 15.00,
+    price: 15.00,
   },
   {
     id: '4',
     name: 'Sorvete de Chocolate',
     description: 'Sorvete cremoso de chocolate',
-    category: 'iceCream',
+    category: 'sorvete',
     image: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
     basePrice: 10.00,
+    price: 10.00,
   },
   {
     id: '5',
     name: 'Sorvete de Baunilha',
     description: 'Sorvete cremoso de baunilha',
-    category: 'iceCream',
+    category: 'sorvete',
     image: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
     basePrice: 10.00,
+    price: 10.00,
   },
   {
     id: '6',
     name: 'Sorvete de Morango',
     description: 'Sorvete cremoso de morango',
-    category: 'iceCream',
+    category: 'sorvete',
     image: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
     basePrice: 10.00,
+    price: 10.00,
   },
 ];
 

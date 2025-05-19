@@ -30,6 +30,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       total: 0,
       orderNumber: orderCounter++,
       createdAt: new Date(),
+      date: new Date(),
       status: 'pending'
     };
     
@@ -52,10 +53,13 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     const newItem: OrderItem = {
       id: `item-${Date.now()}`,
+      productId: product.id,
+      productName: product.name,
       product,
       size,
-      toppings,
       quantity,
+      price: product.price,
+      toppings,
       notes
     };
     
@@ -133,7 +137,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCurrentOrder((prevOrder) => {
       if (!prevOrder) return null;
       
-      const cancelledOrder = { ...prevOrder, status: 'cancelled' as const };
+      const cancelledOrder = { ...prevOrder, status: 'canceled' as const };
       setOrderHistory((prevHistory) => [...prevHistory, cancelledOrder]);
       
       toast.error(`Pedido #${cancelledOrder.orderNumber} cancelado`);

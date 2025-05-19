@@ -22,8 +22,11 @@ export function ToppingsSelector({ toppings, selectedToppings, onToggleTopping }
 
   // Translate category names
   const categoryNames: Record<string, string> = {
-    'fruits': 'Frutas',
+    'frutas': 'Frutas',
+    'complementos': 'Complementos',
+    'caldas': 'Caldas',
     'sweets': 'Doces',
+    'fruits': 'Frutas',
     'syrups': 'Caldas',
     'other': 'Outros',
   };

@@ -26,7 +26,7 @@ export function NewOrder() {
   
   // Filter products by category
   const acaiProducts = products.filter(p => p.category === 'acai');
-  const iceCreamProducts = products.filter(p => p.category === 'iceCream');
+  const iceCreamProducts = products.filter(p => p.category === 'sorvete');
   
   // Handle product selection
   const handleProductSelect = (product: Product) => {
