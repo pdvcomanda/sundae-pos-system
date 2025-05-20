@@ -17,13 +17,13 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <ThemeProvider>
-        <OrderProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+  <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <ThemeProvider>
+          <OrderProvider>
+            <Toaster />
+            <Sonner />
             <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />
@@ -34,11 +34,11 @@ const App = () => (
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </OrderProvider>
-      </ThemeProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+          </OrderProvider>
+        </ThemeProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </BrowserRouter>
 );
 
 export default App;
