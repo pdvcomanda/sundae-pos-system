@@ -1,505 +1,308 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Plus, Edit, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import * as inventoryService from '@/services/inventoryService';
 import { InventoryItem } from '@/types';
-import { getInventoryItems, addInventoryItem, updateInventoryItem, addInventoryStock, deleteInventoryItem } from '@/services/inventoryService';
 
 const InventoryPage = () => {
   const { toast } = useToast();
+  
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [itemDialogOpen, setItemDialogOpen] = useState(false);
-  const [stockDialogOpen, setStockDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-  const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
-  const [saving, setSaving] = useState(false);
-  const [addingStock, setAddingStock] = useState(false);
-
-  // Counts for status badges
-  const criticalCount = inventory.filter(item => item.status === 'critical').length;
-  const lowCount = inventory.filter(item => item.status === 'low').length;
-  const normalCount = inventory.filter(item => item.status === 'normal').length;
-
-  // Load inventory data
+  
   useEffect(() => {
-    const loadInventory = async () => {
-      try {
-        const items = await getInventoryItems();
-        setInventory(items);
-      } catch (error) {
-        console.error('Error loading inventory:', error);
-        toast({
-          title: 'Erro',
-          description: 'Não foi possível carregar o estoque',
-          variant: 'destructive'
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadInventory();
-  }, [toast]);
-
-  // Item form schema
-  const itemFormSchema = z.object({
-    name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-    currentStock: z.number().min(0, 'Estoque deve ser zero ou positivo'),
-    minStock: z.number().min(0, 'Estoque mínimo deve ser zero ou positivo'),
-    unit: z.string().min(1, 'Unidade é obrigatória')
-  });
-
-  // Stock form schema
-  const stockFormSchema = z.object({
-    quantity: z.number().min(0.1, 'Quantidade deve ser maior que zero'),
-    notes: z.string().optional()
-  });
-
-  // Item form
-  const itemForm = useForm<z.infer<typeof itemFormSchema>>({
-    resolver: zodResolver(itemFormSchema),
-    defaultValues: {
-      name: '',
-      currentStock: 0,
-      minStock: 0,
-      unit: 'kg'
-    }
-  });
-
-  // Stock form
-  const stockForm = useForm<z.infer<typeof stockFormSchema>>({
-    resolver: zodResolver(stockFormSchema),
-    defaultValues: {
-      quantity: 1,
-      notes: ''
-    }
-  });
-
-  // Open add item dialog
-  const handleOpenAddItemDialog = () => {
-    itemForm.reset({
-      name: '',
-      currentStock: 0,
-      minStock: 0,
-      unit: 'kg'
-    });
-    setDialogMode('add');
-    setItemDialogOpen(true);
-  };
-
-  // Open edit item dialog
-  const handleOpenEditItemDialog = (item: InventoryItem) => {
-    itemForm.reset({
-      name: item.name,
-      currentStock: item.currentStock,
-      minStock: item.minStock,
-      unit: item.unit
-    });
-    setSelectedItem(item);
-    setDialogMode('edit');
-    setItemDialogOpen(true);
-  };
-
-  // Open add stock dialog
-  const handleOpenAddStockDialog = (item: InventoryItem) => {
-    stockForm.reset({
-      quantity: 1,
-      notes: ''
-    });
-    setSelectedItem(item);
-    setStockDialogOpen(true);
-  };
-
-  // Open delete dialog
-  const handleOpenDeleteDialog = (item: InventoryItem) => {
-    setSelectedItem(item);
-    setDeleteDialogOpen(true);
-  };
-
-  // Submit item form
-  const onItemFormSubmit = async (values: z.infer<typeof itemFormSchema>) => {
-    setSaving(true);
+  }, []);
+  
+  const loadInventory = async () => {
     try {
-      if (dialogMode === 'add') {
-        const newItem = await addInventoryItem(values);
-        if (newItem) {
-          setInventory([...inventory, newItem]);
-          toast({
-            title: 'Item Adicionado',
-            description: `${newItem.name} foi adicionado ao estoque`
-          });
-          setItemDialogOpen(false);
-        }
-      } else if (selectedItem) {
-        const updatedItem = await updateInventoryItem({
-          id: selectedItem.id,
-          ...values
+      const items = await inventoryService.getInventoryItems();
+      setInventory(items);
+    } catch (error) {
+      console.error('Error loading inventory:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load inventory items',
+        variant: 'destructive'
+      });
+    }
+  };
+  
+  const resetForm = () => {
+    const form = document.getElementById('inventory-form') as HTMLFormElement;
+    if (form) {
+      form.reset();
+    }
+  };
+
+  const addInventoryItem = async (formData: FormData) => {
+    try {
+      const name = formData.get('name') as string;
+      const unit = formData.get('unit') as string;
+      const currentStock = parseFloat(formData.get('currentStock') as string);
+      const minStock = parseFloat(formData.get('minStock') as string);
+      
+      if (!name || !unit || isNaN(currentStock) || isNaN(minStock)) {
+        throw new Error('All fields are required');
+      }
+
+      setIsSubmitting(true);
+      const newItem = await inventoryService.addInventoryItem({
+        name,
+        unit,
+        currentStock,
+        minStock
+      });
+      
+      if (newItem) {
+        toast({
+          title: 'Item Added',
+          description: `${newItem.name} has been added to inventory.`
         });
-        
-        if (updatedItem) {
-          setInventory(inventory.map(item => item.id === updatedItem.id ? updatedItem : item));
-          toast({
-            title: 'Item Atualizado',
-            description: `${updatedItem.name} foi atualizado`
-          });
-          setItemDialogOpen(false);
-        }
+        setInventory([...inventory, newItem]);
+        setDialogOpen(false);
+        resetForm();
+      } else {
+        throw new Error('Failed to add inventory item');
       }
     } catch (error) {
-      console.error('Error saving inventory item:', error);
+      console.error('Error adding inventory item:', error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível salvar o item de estoque',
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive'
       });
     } finally {
-      setSaving(false);
+      setIsSubmitting(false);
     }
   };
 
-  // Submit stock form
-  const onStockFormSubmit = async (values: z.infer<typeof stockFormSchema>) => {
-    if (!selectedItem) return;
-    
-    setAddingStock(true);
+  const updateInventoryItem = async (formData: FormData) => {
     try {
-      const success = await addInventoryStock(selectedItem.id, values.quantity, values.notes);
+      const id = formData.get('id') as string;
+      const name = formData.get('name') as string;
+      const unit = formData.get('unit') as string;
+      const currentStock = parseFloat(formData.get('currentStock') as string);
+      const minStock = parseFloat(formData.get('minStock') as string);
       
-      if (success) {
-        // Refresh inventory after adding stock
-        const items = await getInventoryItems();
-        setInventory(items);
-        
+      if (!id || !name || !unit || isNaN(currentStock) || isNaN(minStock)) {
+        throw new Error('All fields are required');
+      }
+
+      setIsSubmitting(true);
+      const updatedItem = await inventoryService.updateInventoryItem({
+        id,
+        name,
+        unit,
+        currentStock,
+        minStock
+      });
+      
+      if (updatedItem) {
         toast({
-          title: 'Estoque Adicionado',
-          description: `${values.quantity} ${selectedItem.unit} adicionado ao estoque de ${selectedItem.name}`
+          title: 'Item Updated',
+          description: `${updatedItem.name} has been updated.`
         });
-        setStockDialogOpen(false);
+        setInventory(inventory.map(item => (item.id === id ? updatedItem : item)));
+        setDialogOpen(false);
+        resetForm();
+      } else {
+        throw new Error('Failed to update inventory item');
       }
     } catch (error) {
-      console.error('Error adding stock:', error);
+      console.error('Error updating inventory item:', error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível adicionar ao estoque',
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive'
       });
     } finally {
-      setAddingStock(false);
+      setIsSubmitting(false);
     }
   };
-
-  // Delete item
-  const handleDeleteItem = async () => {
-    if (!selectedItem) return;
+  
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    if (isEditing) {
+      await updateInventoryItem(formData);
+    } else {
+      await addInventoryItem(formData);
+    }
+  };
+  
+  const handleDelete = async () => {
+    if (!itemToDelete) return;
     
     try {
-      const success = await deleteInventoryItem(selectedItem.id);
-      
-      if (success) {
-        setInventory(inventory.filter(item => item.id !== selectedItem.id));
-        toast({
-          title: 'Item Removido',
-          description: `${selectedItem.name} foi removido do estoque`
-        });
-        setDeleteDialogOpen(false);
-      }
+      await inventoryService.deleteInventoryItem(itemToDelete);
+      setInventory(inventory.filter(item => item.id !== itemToDelete));
+      toast({
+        title: 'Item Deleted',
+        description: 'Item has been deleted from inventory.'
+      });
     } catch (error) {
       console.error('Error deleting inventory item:', error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível remover o item de estoque',
+        title: 'Error',
+        description: 'Failed to delete inventory item',
         variant: 'destructive'
       });
+    } finally {
+      setDeleteDialogOpen(false);
+      setItemToDelete(null);
     }
   };
-
+  
+  const openEditDialog = (item: InventoryItem) => {
+    setIsEditing(true);
+    setDialogOpen(true);
+    
+    // Populate the form with the item's data
+    setTimeout(() => {
+      const form = document.getElementById('inventory-form') as HTMLFormElement;
+      if (form) {
+        form.querySelector<HTMLInputElement>('input[name="id"]')?.value = item.id;
+        form.querySelector<HTMLInputElement>('input[name="name"]')?.value = item.name;
+        form.querySelector<HTMLInputElement>('input[name="currentStock"]')?.value = item.currentStock.toString();
+        form.querySelector<HTMLInputElement>('input[name="minStock"]')?.value = item.minStock.toString();
+        form.querySelector<HTMLInputElement>('input[name="unit"]')?.value = item.unit;
+      }
+    }, 0);
+  };
+  
+  const openAddDialog = () => {
+    setIsEditing(false);
+    setDialogOpen(true);
+  };
+  
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Controle de Estoque</h2>
-        <p className="text-muted-foreground">Gerencie o estoque de produtos e insumos.</p>
-      </div>
-      
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="outline" className="bg-red-50 text-red-700 hover:bg-red-50">
-            Crítico: {criticalCount}
-          </Badge>
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 hover:bg-yellow-50">
-            Baixo: {lowCount}
-          </Badge>
-          <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50">
-            Normal: {normalCount}
-          </Badge>
-        </div>
-        
-        <Button size="sm" onClick={handleOpenAddItemDialog}>
-          <Plus className="h-4 w-4 mr-2" /> Novo Item
+    <div className="container mx-auto py-10">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-semibold">Inventory</h1>
+        <Button onClick={openAddDialog}>
+          <Plus className="mr-2 h-4 w-4" /> Add Item
         </Button>
       </div>
       
       <Card>
         <CardHeader>
-          <CardTitle>Inventário</CardTitle>
-          <CardDescription>Controle de estoque de insumos e produtos</CardDescription>
+          <CardTitle>Inventory List</CardTitle>
+          <CardDescription>Manage your inventory items</CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Item</TableHead>
-                  <TableHead>Estoque Atual</TableHead>
-                  <TableHead>Estoque Mínimo</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Stock</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min Stock</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {inventory.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{item.currentStock} {item.unit}</TableCell>
-                    <TableCell>{item.minStock} {item.unit}</TableCell>
-                    <TableCell>
-                      <Badge
+                  <tr key={item.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.currentStock}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.minStock}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.unit}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <Button variant="outline" size="sm" onClick={() => openEditDialog(item)}>
+                        <Edit className="mr-2 h-4 w-4" />Edit
+                      </Button>
+                      <Button
                         variant="outline"
-                        className={
-                          item.status === 'critical'
-                            ? 'bg-red-50 text-red-700'
-                            : item.status === 'low'
-                            ? 'bg-yellow-50 text-yellow-700'
-                            : 'bg-green-50 text-green-700'
-                        }
+                        size="sm"
+                        className="text-destructive hover:text-destructive ml-2"
+                        onClick={() => {
+                          setItemToDelete(item.id);
+                          setDeleteDialogOpen(true);
+                        }}
                       >
-                        {item.status === 'critical'
-                          ? 'Crítico'
-                          : item.status === 'low'
-                          ? 'Baixo'
-                          : 'Normal'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleOpenEditItemDialog(item)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleOpenDeleteDialog(item)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleOpenAddStockDialog(item)}>
-                          <Plus className="h-4 w-4 mr-1" /> Adicionar
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                        <Trash2 className="mr-2 h-4 w-4" />Delete
+                      </Button>
+                    </td>
+                  </tr>
                 ))}
-                {inventory.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      Nenhum item no estoque. Clique em 'Novo Item' para adicionar.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
       
-      {/* Add/Edit Item Dialog */}
-      <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{dialogMode === 'add' ? 'Adicionar Item' : 'Editar Item'}</DialogTitle>
+            <DialogTitle>{isEditing ? 'Edit Item' : 'Add Item'}</DialogTitle>
             <DialogDescription>
-              {dialogMode === 'add' 
-                ? 'Adicione um novo item ao estoque.' 
-                : 'Edite as informações do item.'}
+              {isEditing ? 'Edit an existing item in the inventory.' : 'Add a new item to the inventory.'}
             </DialogDescription>
           </DialogHeader>
-          
-          <Form {...itemForm}>
-            <form onSubmit={itemForm.handleSubmit(onItemFormSubmit)} className="space-y-4">
-              <FormField
-                control={itemForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome do Item</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Açaí Base" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={itemForm.control}
-                  name="currentStock"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estoque Atual</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          min="0"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          value={field.value}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={itemForm.control}
-                  name="minStock"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estoque Mínimo</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          min="0"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          value={field.value}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <form id="inventory-form" onSubmit={handleSubmit}>
+            {isEditing && <input type="hidden" name="id" />}
+            <div className="grid gap-4 py-4">
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input type="text" id="name" name="name" placeholder="Item Name" required />
               </div>
-              
-              <FormField
-                control={itemForm.control}
-                name="unit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unidade</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: kg, unidades, litros" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setItemDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={saving}>
-                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {dialogMode === 'add' ? 'Adicionar' : 'Salvar'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+              <div>
+                <Label htmlFor="currentStock">Current Stock</Label>
+                <Input type="number" id="currentStock" name="currentStock" placeholder="Current Stock" required />
+              </div>
+              <div>
+                <Label htmlFor="minStock">Min Stock</Label>
+                <Input type="number" id="minStock" name="minStock" placeholder="Minimum Stock" required />
+              </div>
+              <div>
+                <Label htmlFor="unit">Unit</Label>
+                <Input type="text" id="unit" name="unit" placeholder="Unit (e.g., kg, piece)" required />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isEditing ? 'Update Item' : 'Add Item'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
       
-      {/* Add Stock Dialog */}
-      <Dialog open={stockDialogOpen} onOpenChange={setStockDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Adicionar Estoque</DialogTitle>
-            <DialogDescription>
-              Adicione quantidade ao estoque de {selectedItem?.name}.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Form {...stockForm}>
-            <form onSubmit={stockForm.handleSubmit(onStockFormSubmit)} className="space-y-4">
-              <FormField
-                control={stockForm.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantidade ({selectedItem?.unit})</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        min="0.01"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={stockForm.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Observações</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Compra, reposição, etc." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setStockDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={addingStock}>
-                  {addingStock && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Adicionar
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Delete Item Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Remover Item</DialogTitle>
+            <DialogTitle>Delete Item</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja remover {selectedItem?.name} do estoque? Esta ação não pode ser desfeita.
+              Are you sure you want to delete this item? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancelar
+            <Button type="button" variant="secondary" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteItem}>
-              Remover
+            <Button type="button" variant="destructive" onClick={handleDelete}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

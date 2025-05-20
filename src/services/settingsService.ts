@@ -30,7 +30,7 @@ export const updateBusinessSettings = async (settings: Partial<BusinessSettings>
       phone: settings.phone,
       email: settings.email,
       logo_url: settings.logoUrl,
-      updated_at: new Date(),
+      updated_at: new Date().toISOString()
     })
     .eq('id', settings.id)
     .select()
@@ -81,7 +81,7 @@ export const updatePrinterSettings = async (settings: Partial<PrinterSettings>):
       auto_print: settings.autoPrint,
       print_customer_receipt: settings.printCustomerReceipt,
       print_kitchen_receipt: settings.printKitchenReceipt,
-      updated_at: new Date(),
+      updated_at: new Date().toISOString()
     })
     .eq('id', settings.id)
     .select()
@@ -132,7 +132,7 @@ export const updateSystemSettings = async (settings: Partial<SystemSettings>): P
       whatsapp_number: settings.whatsappNumber,
       chatbot_enabled: settings.chatbotEnabled,
       chatbot_welcome_message: settings.chatbotWelcomeMessage,
-      updated_at: new Date(),
+      updated_at: new Date().toISOString()
     })
     .eq('id', settings.id)
     .select()
@@ -160,7 +160,7 @@ export const createBackup = async (): Promise<boolean> => {
   const { error } = await supabase
     .from('system_settings')
     .update({
-      last_backup_at: new Date(),
+      last_backup_at: new Date().toISOString()
     })
     .eq('id', (await getSystemSettings())?.id || '');
   

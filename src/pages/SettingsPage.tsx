@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -405,7 +404,15 @@ const SettingsPage = () => {
   const onUserFormSubmit = async (values: z.infer<typeof userFormSchema>) => {
     try {
       if (userDialogMode === 'add') {
-        const newUser = await addUser(values);
+        // Ensure all required fields have values
+        const userToAdd: Omit<User, 'id'> = {
+          username: values.username,
+          fullName: values.fullName,
+          role: values.role,
+          active: values.active
+        };
+        
+        const newUser = await addUser(userToAdd);
         if (newUser) {
           setUsers([...users, newUser]);
           toast({
@@ -416,10 +423,16 @@ const SettingsPage = () => {
       } else {
         if (!selectedUser) return;
         
-        const updatedUser = await updateUser({
+        // Ensure all required fields have values
+        const userToUpdate: User = {
           id: selectedUser.id,
-          ...values
-        });
+          username: values.username,
+          fullName: values.fullName,
+          role: values.role,
+          active: values.active
+        };
+        
+        const updatedUser = await updateUser(userToUpdate);
         
         if (updatedUser) {
           setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));

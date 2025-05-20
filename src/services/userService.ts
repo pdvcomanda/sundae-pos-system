@@ -56,7 +56,7 @@ export const updateUser = async (user: User): Promise<User | null> => {
       full_name: user.fullName,
       role: user.role,
       active: user.active,
-      updated_at: new Date()
+      updated_at: new Date().toISOString()
     })
     .eq('id', user.id)
     .select()

@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { InventoryItem } from '@/types';
 
+// Get all inventory items
 export const getInventoryItems = async (): Promise<InventoryItem[]> => {
   const { data, error } = await supabase
     .from('inventory')
@@ -9,20 +10,44 @@ export const getInventoryItems = async (): Promise<InventoryItem[]> => {
     .order('name', { ascending: true });
   
   if (error) {
-    console.error('Error fetching inventory items:', error);
+    console.error('Error fetching inventory:', error);
     return [];
   }
   
   return data.map((item) => ({
     id: item.id,
     name: item.name,
-    currentStock: Number(item.current_stock),
-    minStock: Number(item.min_stock),
+    currentStock: item.current_stock,
+    minStock: item.min_stock,
     unit: item.unit,
     status: item.status as 'critical' | 'low' | 'normal'
   }));
 };
 
+// Get one inventory item by ID
+export const getInventoryItem = async (id: string): Promise<InventoryItem | null> => {
+  const { data, error } = await supabase
+    .from('inventory')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  if (error) {
+    console.error('Error fetching inventory item:', error);
+    return null;
+  }
+  
+  return {
+    id: data.id,
+    name: data.name,
+    currentStock: data.current_stock,
+    minStock: data.min_stock,
+    unit: data.unit,
+    status: data.status as 'critical' | 'low' | 'normal'
+  };
+};
+
+// Add new inventory item
 export const addInventoryItem = async (item: Omit<InventoryItem, 'id' | 'status'>): Promise<InventoryItem | null> => {
   const { data, error } = await supabase
     .from('inventory')
@@ -30,7 +55,8 @@ export const addInventoryItem = async (item: Omit<InventoryItem, 'id' | 'status'
       name: item.name,
       current_stock: item.currentStock,
       min_stock: item.minStock,
-      unit: item.unit
+      unit: item.unit,
+      updated_at: new Date().toISOString()
     })
     .select()
     .single();
@@ -43,13 +69,14 @@ export const addInventoryItem = async (item: Omit<InventoryItem, 'id' | 'status'
   return {
     id: data.id,
     name: data.name,
-    currentStock: Number(data.current_stock),
-    minStock: Number(data.min_stock),
+    currentStock: data.current_stock,
+    minStock: data.min_stock,
     unit: data.unit,
     status: data.status as 'critical' | 'low' | 'normal'
   };
 };
 
+// Update inventory item
 export const updateInventoryItem = async (item: Omit<InventoryItem, 'status'>): Promise<InventoryItem | null> => {
   const { data, error } = await supabase
     .from('inventory')
@@ -58,7 +85,7 @@ export const updateInventoryItem = async (item: Omit<InventoryItem, 'status'>): 
       current_stock: item.currentStock,
       min_stock: item.minStock,
       unit: item.unit,
-      updated_at: new Date()
+      updated_at: new Date().toISOString()
     })
     .eq('id', item.id)
     .select()
@@ -72,28 +99,14 @@ export const updateInventoryItem = async (item: Omit<InventoryItem, 'status'>): 
   return {
     id: data.id,
     name: data.name,
-    currentStock: Number(data.current_stock),
-    minStock: Number(data.min_stock),
+    currentStock: data.current_stock,
+    minStock: data.min_stock,
     unit: data.unit,
     status: data.status as 'critical' | 'low' | 'normal'
   };
 };
 
-export const addInventoryStock = async (id: string, quantity: number, notes: string = ''): Promise<boolean> => {
-  const { error } = await supabase.rpc('add_inventory_stock', { 
-    item_id: id,
-    amount: quantity,
-    note: notes
-  });
-  
-  if (error) {
-    console.error('Error adding inventory stock:', error);
-    return false;
-  }
-  
-  return true;
-};
-
+// Delete inventory item
 export const deleteInventoryItem = async (id: string): Promise<boolean> => {
   const { error } = await supabase
     .from('inventory')
@@ -106,4 +119,28 @@ export const deleteInventoryItem = async (id: string): Promise<boolean> => {
   }
   
   return true;
+};
+
+// Add stock to inventory item
+export const addStock = async (itemId: string, amount: number, note: string): Promise<boolean> => {
+  try {
+    // Call the RPC function we created in the migration
+    const { data, error } = await supabase.rpc('add_inventory_stock', {
+      item_id: itemId,
+      amount,
+      note
+    });
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error adding stock:', error);
+    return false;
+  }
+};
+
+// Reduce stock from inventory item
+export const reduceStock = async (itemId: string, amount: number, reason: string): Promise<boolean> => {
+  const negativeAmount = -Math.abs(amount);
+  return await addStock(itemId, negativeAmount, reason);
 };
