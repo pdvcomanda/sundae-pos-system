@@ -128,7 +128,7 @@ export function Dashboard() {
                 <p className="text-center py-8 text-muted-foreground">Sem dados suficientes</p>
               ) : (
                 Object.entries(popularProducts)
-                  .sort(([, countA], [, countB]) => countB - countA)
+                  .sort(([, countA], [, countB]) => (countB as number) - (countA as number))
                   .slice(0, 5)
                   .map(([productId, count], index) => {
                     // Find product name in orderHistory

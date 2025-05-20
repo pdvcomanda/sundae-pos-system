@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -180,11 +181,17 @@ const InventoryPage = () => {
     setTimeout(() => {
       const form = document.getElementById('inventory-form') as HTMLFormElement;
       if (form) {
-        form.querySelector<HTMLInputElement>('input[name="id"]')?.value = item.id;
-        form.querySelector<HTMLInputElement>('input[name="name"]')?.value = item.name;
-        form.querySelector<HTMLInputElement>('input[name="currentStock"]')?.value = item.currentStock.toString();
-        form.querySelector<HTMLInputElement>('input[name="minStock"]')?.value = item.minStock.toString();
-        form.querySelector<HTMLInputElement>('input[name="unit"]')?.value = item.unit;
+        const idInput = form.querySelector<HTMLInputElement>('input[name="id"]');
+        const nameInput = form.querySelector<HTMLInputElement>('input[name="name"]');
+        const currentStockInput = form.querySelector<HTMLInputElement>('input[name="currentStock"]');
+        const minStockInput = form.querySelector<HTMLInputElement>('input[name="minStock"]');
+        const unitInput = form.querySelector<HTMLInputElement>('input[name="unit"]');
+        
+        if (idInput) idInput.value = item.id;
+        if (nameInput) nameInput.value = item.name;
+        if (currentStockInput) currentStockInput.value = item.currentStock.toString();
+        if (minStockInput) minStockInput.value = item.minStock.toString();
+        if (unitInput) unitInput.value = item.unit;
       }
     }, 0);
   };

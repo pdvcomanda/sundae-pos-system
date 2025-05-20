@@ -11,6 +11,7 @@ type OrderContextType = {
   toppings: Topping[];
   currentOrder: Order | null;
   activeOrderItem: OrderItem | null;
+  orderHistory: Order[]; // Added missing property
   startNewOrder: () => void;
   addProductToOrder: (product: Product, size: Size, quantity?: number) => void;
   updateOrderItemQuantity: (itemId: string, quantity: number) => void;
@@ -25,6 +26,12 @@ type OrderContextType = {
   orderTotal: number;
   orderNumber: number;
   completeOrder: () => void;
+  
+  // Added missing properties needed by components
+  addItemToOrder: (product: Product, size: Size, toppings: Topping[], quantity: number, notes: string) => void;
+  removeItemFromOrder: (itemId: string) => void;
+  updateItemQuantity: (itemId: string, quantity: number) => void;
+  createNewOrder: () => void;
 };
 
 // Create context with default undefined value
@@ -48,6 +55,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [activeOrderItem, setActiveOrderItem] = useState<OrderItem | null>(null);
   const [orderNumber, setOrderNumber] = useState<number>(1);
+  const [orderHistory, setOrderHistory] = useState<Order[]>([]);
 
   // Start a new order
   const startNewOrder = () => {
@@ -62,6 +70,11 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     };
     setCurrentOrder(newOrder);
     setOrderNumber(prev => prev + 1);
+  };
+
+  // Create a new order - alias for startNewOrder for API compatibility
+  const createNewOrder = () => {
+    startNewOrder();
   };
 
   // Add product to order
@@ -112,6 +125,9 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       setCurrentOrder(updatedOrder);
     }
   };
+
+  // Alias for updateOrderItemQuantity for API compatibility
+  const updateItemQuantity = updateOrderItemQuantity;
 
   // Add topping to order item
   const addToppingToOrderItem = (topping: Topping) => {
@@ -193,6 +209,9 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Alias for removeOrderItem for API compatibility
+  const removeItemFromOrder = removeOrderItem;
+
   // Finalize order
   const finalizeOrder = () => {
     if (currentOrder) {
@@ -217,9 +236,64 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         ...currentOrder,
         status: 'completed' as const,
       };
-      setCurrentOrder(completedOrder);
+      setOrderHistory(prev => [...prev, completedOrder]);
+      setCurrentOrder(null);
       // In a real system, you would update the status in the backend
     }
+  };
+
+  // Add item directly to order - combines multiple steps for convenience
+  const addItemToOrder = (
+    product: Product, 
+    size: Size, 
+    toppings: Topping[], 
+    quantity: number, 
+    notes: string
+  ) => {
+    if (!currentOrder) {
+      startNewOrder();
+    }
+    
+    const itemPrice = product.basePrice * size.priceMultiplier;
+    const toppingsPrice = toppings.reduce((sum, topping) => sum + topping.price, 0);
+    const totalItemPrice = (itemPrice + toppingsPrice) * quantity;
+    
+    const orderItem: OrderItem = {
+      id: uuidv4(),
+      productId: product.id,
+      productName: product.name,
+      product: product,
+      size: size,
+      quantity: quantity,
+      price: totalItemPrice,
+      toppings: toppings,
+      notes: notes,
+    };
+    
+    setCurrentOrder(prevOrder => {
+      if (!prevOrder) {
+        // Create a new order if there isn't one
+        const newOrder: Order = {
+          id: uuidv4(),
+          items: [orderItem],
+          total: totalItemPrice,
+          date: new Date(),
+          status: 'pending',
+          orderNumber: orderNumber,
+          createdAt: new Date(),
+        };
+        setOrderNumber(prev => prev + 1);
+        return newOrder;
+      }
+      
+      // Add to existing order
+      const updatedItems = [...prevOrder.items, orderItem];
+      return {
+        ...prevOrder,
+        items: updatedItems,
+        total: updatedItems.reduce((total, item) => total + item.price, 0),
+      };
+    });
   };
 
   // Calculate total items in the order
@@ -234,6 +308,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     toppings,
     currentOrder,
     activeOrderItem,
+    orderHistory,
     startNewOrder,
     addProductToOrder,
     updateOrderItemQuantity,
@@ -248,6 +323,11 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     totalItems,
     orderTotal,
     orderNumber,
+    // Add the new alias functions
+    addItemToOrder,
+    removeItemFromOrder,
+    updateItemQuantity,
+    createNewOrder,
   };
 
   return (
