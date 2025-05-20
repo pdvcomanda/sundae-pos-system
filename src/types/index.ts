@@ -1,5 +1,5 @@
 
-// Definição de tamanhos com todas as propriedades necessárias
+// Size definition
 export type Size = {
   id: string;
   name: string;
@@ -7,6 +7,7 @@ export type Size = {
   priceMultiplier: number;
 };
 
+// Product definition
 export type Product = {
   id: string;
   name: string;
@@ -18,6 +19,7 @@ export type Product = {
   available_sizes?: Size[];
 };
 
+// Topping definition
 export type Topping = {
   id: string;
   name: string;
@@ -26,6 +28,7 @@ export type Topping = {
   image?: string;
 };
 
+// OrderItem definition
 export type OrderItem = {
   id: string;
   productId: string;
@@ -38,6 +41,7 @@ export type OrderItem = {
   notes?: string;
 };
 
+// Order definition
 export type Order = {
   id: string;
   items: OrderItem[];
@@ -45,5 +49,66 @@ export type Order = {
   date: Date;
   status: 'pending' | 'completed' | 'canceled';
   orderNumber: number;
+  createdAt: Date;
+};
+
+// Business settings definition
+export type BusinessSettings = {
+  id: string;
+  businessName: string;
+  address: string;
+  phone: string;
+  email: string;
+  logoUrl: string;
+};
+
+// Printer settings definition
+export type PrinterSettings = {
+  id: string;
+  connectionType: 'bluetooth' | 'usb';
+  printerName: string;
+  printerAddress: string;
+  autoPrint: boolean;
+  printCustomerReceipt: boolean;
+  printKitchenReceipt: boolean;
+};
+
+// System settings definition
+export type SystemSettings = {
+  id: string;
+  darkMode: boolean;
+  lastBackupAt?: Date;
+  whatsappEnabled: boolean;
+  whatsappNumber?: string;
+  chatbotEnabled: boolean;
+  chatbotWelcomeMessage: string;
+};
+
+// User definition
+export type User = {
+  id: string;
+  username: string;
+  fullName: string;
+  role: 'admin' | 'operator';
+  active: boolean;
+};
+
+// Inventory item definition
+export type InventoryItem = {
+  id: string;
+  name: string;
+  currentStock: number;
+  minStock: number;
+  unit: string;
+  status: 'critical' | 'low' | 'normal';
+};
+
+// WhatsApp message definition
+export type WhatsAppMessage = {
+  id: string;
+  phoneNumber: string;
+  message: string;
+  direction: 'incoming' | 'outgoing';
+  processed: boolean;
   createdAt: Date;
 };
